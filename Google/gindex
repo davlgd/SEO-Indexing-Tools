@@ -1,0 +1,55 @@
+#!/usr/bin/env node
+
+const { URL } = require('url');
+const request = require("request");
+const { google } = require("googleapis");
+const key = require("./service_account.json");
+
+const jwtClient = new google.auth.JWT(
+  key.client_email,
+  null,
+  key.private_key,
+  ["https://www.googleapis.com/auth/indexing"],
+  null
+);
+
+const urlParam = process.argv[2];
+  
+if (!urlParam) {
+  console.log("Error: URL to index is required");
+  console.log("Usage: node index.js <URL>");
+  return;
+}
+
+try {
+  new URL(urlParam);
+}
+catch (e) {
+  console.log("Error: provided URL is invalid");
+  console.log("Usage: node index.js <URL>");
+  return;
+}
+
+jwtClient.authorize(function(err, tokens) {
+  if (err) {
+    console.log(err);
+    return;
+  }
+
+  let options = {
+    url: "https://indexing.googleapis.com/v3/urlNotifications:publish",
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    auth: { "bearer": tokens.access_token },
+    json: {
+      "url": urlParam,
+      "type": "URL_UPDATED"
+    }
+  };
+
+  request(options, function (error, response, body) {
+    console.log(body);
+  });
+});

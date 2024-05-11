@@ -1,0 +1,38 @@
+#!/bin/bash
+
+if [ -z "$INDEXNOW_DOMAIN" ]; then
+    echo "You must set the indexed domain through INDEXNOW_DOMAIN environment variable"
+    exit 1
+fi
+
+if [ -z "$INDEXNOW_KEY" ]; then
+    echo "You must provide your API key through INDEXNOW_KEY environment variable"
+    exit 1
+fi
+
+if [ ! -s urls.txt ]; then
+    echo "You must provide 'urls.txt' file containing the list of URLs to index"
+    exit 1
+fi
+
+while IFS= read -r line; do
+  URLS+=("${line}")
+done < "urls.txt"
+
+url_list_json=$(printf ', "%s"' "${URLS[@]}")
+
+json_body=$(cat <<EOF
+{
+    "host": "${INDEXNOW_DOMAIN}",
+    "key": "${INDEXNOW_KEY}",
+    "keyLocation": "https://${INDEXNOW_DOMAIN}/${INDEXNOW_KEY}.txt",
+    "urlList": [ ${url_list_json:2} ]
+}
+EOF
+)
+
+content_length=$(echo -n "$json_body" | wc -c)
+
+curl -X POST -H "Content-Type: application/json" \
+    -H "Content-Length: $content_length" \
+    -d "$json_body" "https://api.indexnow.org/IndexNow"

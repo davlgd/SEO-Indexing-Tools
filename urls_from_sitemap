@@ -1,0 +1,28 @@
+#!/usr/bin/env ruby
+
+require 'nokogiri'
+require 'open-uri'
+
+if ARGV.length != 1
+  puts "Usage: #{__FILE__} <SITEMAP_URL>"
+  exit 1
+end
+
+url = ARGV[0]
+
+begin
+  xml_data = URI.open(url)
+  doc = Nokogiri::XML(xml_data)
+  
+  namespaces = {
+    "sitemap" => "http://www.sitemaps.org/schemas/sitemap/0.9"
+  }
+
+  doc.xpath('//sitemap:urlset/sitemap:url/sitemap:loc', namespaces).each do |node|
+    puts node.text
+  end
+rescue OpenURI::HTTPError => e
+  puts "Error while accessing URL: #{e.message}"
+rescue Nokogiri::XML::SyntaxError => e
+  puts "Error while parsing XML: #{e.message}"
+end
